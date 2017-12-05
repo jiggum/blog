@@ -3,11 +3,9 @@ import {
   GraphQLNonNull
 } from 'graphql/type';
 import jwt from 'jsonwebtoken';
-
+import { checkAdmin, login as login_ } from '../../../controller/auth/auth.controller';
 import userType from './user.type';
 import User from '../../../mongoose/user';
-import { JWT_SECRET } from '../../../config';
-
 
 const createUser = {
   type: userType,
@@ -22,6 +20,7 @@ const createUser = {
     }
   },
   resolve: (obj, {email, password}, source, fieldASTs) => {
+    checkAdmin(source.headers);
     return User.create(email, password);
   }
 };
@@ -39,36 +38,7 @@ const login = {
     }
   },
   resolve: (obj, {email, password}, source, fieldASTs) => {
-    return User.findByEmail(email)
-    .then(user => {
-      // check user is exists
-      if(!user) throw new Error('unregistered email');
-      // check the password
-      if(!user.verify(password)) throw new Error('unmatched password');
-      // create a promise that generates jwt asynchronously
-      return new Promise((resolve, reject) => {
-        jwt.sign(
-          {
-            _id: user._id,
-            email: user.email,
-            admin: user.admin
-          }, 
-          JWT_SECRET,
-          {
-            expiresIn: '7d',
-            issuer: 'dongmin.com',
-            subject: 'userInfo'
-          }, (err, token) => {
-            if (err) reject(err);
-            resolve({
-              email: user.email,
-              admin: user.admin,
-              token
-            });
-          })
-        }
-      );
-    })
+    return login_({email, password});
   }
 };
 

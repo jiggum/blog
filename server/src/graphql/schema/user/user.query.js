@@ -5,27 +5,24 @@ import {
 } from 'graphql/type';
 
 import userType from './user.type';
+import User from '../../../mongoose/user'
+import getProjection from '../../util/getProjection';
+import { checkAdmin } from '../../../controller/auth/auth.controller'
 
 const query = {
   type: new GraphQLList(userType),
   args: {
     email: {
       name: 'email',
-      type: new GraphQLNonNull(GraphQLString)
+      type: GraphQLString
     }
   },
-  resolve: (obj, item, source, fieldASTs) => {
-    // console.log(fieldASTs);
+  resolve: (obj, {email}, source, fieldASTs) => {
+    checkAdmin(source.headers);
     var projections = getProjection(fieldASTs);
-    console.log(fieldASTs.fieldNodes[0]);
-    console.log(projections)
-    // var foundItems = new Promise((resolve, reject) => {
-    //     ToDoMongo.find({itemId}, projections,(err, todos) => {
-    //         err ? reject(err) : resolve(todos)
-    //     })
-    // })
-
-    // return foundItems
+    const query = {}
+    if(email) query.email = email;
+    return User.find(query, projections);
   }
 }
 
